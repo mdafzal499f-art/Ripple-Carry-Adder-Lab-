@@ -1,0 +1,554 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Ripple Carry Adder Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: one column of bench-style panels. Summary strip first, then circuit, timing, stage table, scaling, pixel use. */
+:root{
+  --bg:#e8ecef;
+  --surface:#f5f7f8;
+  --ink:#0f1a22;
+  --muted:#53636e;
+  --line:#c2ccd3;
+  --wire-lo:#97a6b0;
+  --sig:#0a8a76;
+  --sig-ink:#076452;
+  --sig-tint:#d5efe9;
+  --carry:#c25a00;
+  --carry-ink:#a04a00;
+  --carry-tint:#fbe3cf;
+  --gate-fill:#fbfcfc;
+  --on-sig:#ffffff;
+  --btn:#14293a;
+  --on-btn:#f2f6f8;
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1419;--surface:#141d24;--ink:#e3ebef;--muted:#8da0ab;--line:#27343d;
+    --wire-lo:#3f505b;--sig:#35d1b0;--sig-ink:#5fe0c4;--sig-tint:#12352e;
+    --carry:#ffa648;--carry-ink:#ffb868;--carry-tint:#3b2412;--gate-fill:#18222a;
+    --on-sig:#05201a;--btn:#e3ebef;--on-btn:#0d1419;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1419;--surface:#141d24;--ink:#e3ebef;--muted:#8da0ab;--line:#27343d;
+  --wire-lo:#3f505b;--sig:#35d1b0;--sig-ink:#5fe0c4;--sig-tint:#12352e;
+  --carry:#ffa648;--carry-ink:#ffb868;--carry-tint:#3b2412;--gate-fill:#18222a;
+  --on-sig:#05201a;--btn:#e3ebef;--on-btn:#0d1419;color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--font-body);font-size:15px;line-height:1.55;
+  padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:-0.01em}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.04;font-weight:700}
+h2{font-size:1.3rem;line-height:1.2;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:var(--font-mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--carry-ink);margin-bottom:10px}
+.lede{max-width:62ch;color:var(--muted);font-size:1.05rem;margin-top:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.panel>.sub{color:var(--muted);max-width:70ch}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* inputs */
+.inputs{display:flex;flex-direction:column;gap:12px}
+.bitrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.bitname{font-family:var(--font-display);font-weight:700;font-size:1.25rem;width:2.6rem}
+.bits{display:flex;gap:8px}
+.bit{
+  font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:52px;height:56px;border-radius:8px;border:1.5px solid var(--wire-lo);background:var(--gate-fill);color:var(--ink);gap:0;padding:0;
+}
+.bit .bl{font-family:var(--font-mono);font-size:.68rem;color:var(--muted);line-height:1.2}
+.bit .bv{font-family:var(--font-mono);font-size:1.35rem;font-weight:600;line-height:1.2}
+.bit[aria-pressed="true"]{background:var(--sig);border-color:var(--sig);color:var(--on-sig)}
+.bit[aria-pressed="true"] .bl{color:var(--on-sig)}
+.bit.cin[aria-pressed="true"]{background:var(--carry);border-color:var(--carry);color:var(--on-sig)}
+.decv{font-family:var(--font-mono);color:var(--muted);font-size:.9rem}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  font:inherit;font-size:.88rem;cursor:pointer;padding:7px 12px;border-radius:999px;
+  border:1.5px solid var(--line);background:transparent;color:var(--ink);
+}
+.chip[aria-pressed="true"]{background:var(--btn);color:var(--on-btn);border-color:var(--btn)}
+.note{color:var(--muted);font-size:.92rem;max-width:72ch;min-height:2.8em}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--carry);outline-offset:2px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px 28px}
+.stat .k{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:var(--font-mono);font-size:1.7rem;font-weight:600;line-height:1.25;margin-top:2px;font-variant-numeric:tabular-nums}
+.stat .s{color:var(--muted);font-size:.85rem}
+.meter{height:6px;border-radius:3px;background:var(--line);margin:8px 0 4px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--carry);width:0}
+
+/* circuit */
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.85rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.scroll>svg{display:block;min-width:820px;width:100%;height:auto}
+.wire{fill:none;stroke:var(--wire-lo);stroke-width:2;stroke-linejoin:round;transition:stroke .12s}
+.wire.hi{stroke:var(--sig)}
+.wire.carry.hi{stroke:var(--carry)}
+.wire.flash{stroke-width:4}
+.dot{fill:var(--wire-lo)}
+.dot.hi{fill:var(--sig)}
+.dot.carry.hi{fill:var(--carry)}
+.stagebox{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:5 5}
+.stitle{font-family:var(--font-display);font-weight:700;font-size:15px;fill:var(--ink)}
+.gate rect{fill:var(--gate-fill);stroke:var(--wire-lo);stroke-width:1.5;transition:fill .12s}
+.gate text{font-family:var(--font-mono);font-size:11px;font-weight:600;fill:var(--ink)}
+.gate.hi rect{stroke:var(--sig);fill:var(--sig-tint)}
+.gate.carry.hi rect{stroke:var(--carry);fill:var(--carry-tint)}
+.gate.flash rect{stroke-width:3.5}
+.sl{font-family:var(--font-mono);font-size:10px;fill:var(--muted)}
+.pl{font-family:var(--font-mono);font-size:11px;fill:var(--muted);text-anchor:middle}
+.node circle{fill:var(--gate-fill);stroke:var(--wire-lo);stroke-width:2}
+.node text.val{font-family:var(--font-mono);font-size:12px;font-weight:600;fill:var(--ink);text-anchor:middle}
+.node.hi circle{fill:var(--sig);stroke:var(--sig)}
+.node.carry.hi circle{fill:var(--carry);stroke:var(--carry)}
+.node.hi text.val{fill:var(--on-sig)}
+.node.pin{cursor:pointer}
+.node:focus-visible{outline:none}
+.node:focus-visible circle{stroke:var(--carry);stroke-width:4}
+
+.controls{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.btn{
+  font:inherit;font-weight:500;cursor:pointer;border-radius:8px;padding:8px 14px;
+  border:1.5px solid var(--btn);background:transparent;color:var(--ink);
+}
+.btn.primary{background:var(--btn);color:var(--on-btn)}
+.scrub{display:flex;align-items:center;gap:10px;flex:1 1 260px;min-width:0}
+.scrub input[type=range]{flex:1;min-width:0;accent-color:var(--carry)}
+.tlabel{font-family:var(--font-mono);font-size:.88rem;min-width:11.5ch;font-variant-numeric:tabular-nums}
+.field{display:flex;align-items:center;gap:8px;font-size:.88rem;color:var(--muted)}
+.field input,.field select{
+  font:inherit;font-family:var(--font-mono);font-size:.88rem;color:var(--ink);background:var(--gate-fill);
+  border:1.5px solid var(--wire-lo);border-radius:6px;padding:5px 8px;
+}
+.field input{width:5.5em}
+
+/* wave */
+#wave{display:block;min-width:660px;width:100%;height:auto;cursor:crosshair}
+.wgrid{stroke:var(--line);stroke-width:1}
+.wlab{font-family:var(--font-mono);font-size:12px;fill:var(--ink);text-anchor:end}
+.wtick{font-family:var(--font-mono);font-size:10px;fill:var(--muted);text-anchor:middle}
+.wsig{fill:none;stroke:var(--sig);stroke-width:2.2;stroke-linejoin:round}
+.wsig.carry{stroke:var(--carry)}
+.wflip{font-family:var(--font-mono);font-size:10.5px;fill:var(--carry-ink)}
+.wworst{stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4}
+.wworstlab{font-family:var(--font-mono);font-size:10px;fill:var(--muted);text-anchor:middle}
+.whead{stroke:var(--ink);stroke-width:1.6}
+
+/* table */
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.92rem}
+th{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:500;padding:8px 12px;border-bottom:1.5px solid var(--line)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+td.st{font-family:var(--font-display);font-weight:700}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-family:var(--font-body);font-size:.8rem;font-weight:600;padding:2px 9px;border-radius:999px;border:1.5px solid}
+.tag.gen{color:var(--carry-ink);border-color:var(--carry);background:var(--carry-tint)}
+.tag.prop{color:var(--sig-ink);border-color:var(--sig);background:var(--sig-tint)}
+.tag.kill{color:var(--muted);border-color:var(--wire-lo)}
+
+/* scaling */
+.formulas{display:flex;flex-wrap:wrap;gap:8px 28px;font-family:var(--font-mono);font-size:.95rem}
+.formulas b{color:var(--carry-ink);font-weight:600}
+.scale{display:flex;flex-direction:column;gap:14px}
+.srow{display:grid;grid-template-columns:7.5rem 1fr;gap:6px 14px;align-items:center}
+.srow .n{font-family:var(--font-mono);font-size:.88rem}
+.srow .n small{display:block;color:var(--muted);font-size:.72rem}
+.srow.here .n{color:var(--carry-ink);font-weight:600}
+.bars{display:flex;flex-direction:column;gap:5px;min-width:0}
+.bar{display:flex;align-items:center;gap:8px;min-width:0}
+.bar i{display:block;height:12px;border-radius:3px;min-width:3px;flex:none}
+.bar.rip i{background:var(--carry)}
+.bar.cla i{background:var(--sig)}
+.bar span{font-family:var(--font-mono);font-size:.8rem;color:var(--muted);white-space:nowrap}
+
+/* pixel */
+.pix{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px}
+.pix figure{margin:0;display:flex;flex-direction:column;gap:8px}
+.swatch{height:84px;border-radius:8px;border:1.5px solid var(--line)}
+.pix figcaption{font-size:.88rem;color:var(--muted)}
+.pix figcaption b{display:block;color:var(--ink);font-family:var(--font-mono);font-weight:600}
+.foot{color:var(--muted);font-size:.85rem;max-width:80ch}
+@media (prefers-reduced-motion: reduce){.wire,.gate rect{transition:none}}
+@media (max-width:520px){.srow{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Image Processing System · Binary arithmetic</p>
+    <h1>Ripple Carry Adder Lab</h1>
+    <p class="lede">Four full adders chained in a row. Flip an input and watch the carry travel from stage to stage, one gate delay at a time.</p>
+  </header>
+
+  <section class="panel" aria-label="Inputs">
+    <div class="inputs">
+      <div class="bitrow"><span class="bitname">A</span><div class="bits" id="bitsA" role="group" aria-label="Input A bits"></div><span class="decv" id="decA"></span></div>
+      <div class="bitrow"><span class="bitname">B</span><div class="bits" id="bitsB" role="group" aria-label="Input B bits"></div><span class="decv" id="decB"></span></div>
+      <div class="bitrow"><span class="bitname">Cin</span><div class="bits" id="bitsC" role="group" aria-label="Carry in"></div></div>
+    </div>
+    <div class="presets" id="presets" role="group" aria-label="Example inputs"></div>
+    <p class="note" id="note"></p>
+  </section>
+
+  <section class="panel" aria-label="Result and timing summary">
+    <div class="stats">
+      <div class="stat"><div class="k">Result</div><div class="v" id="stResult"></div><div class="s" id="stResultSub"></div></div>
+      <div class="stat"><div class="k">Settled after</div><div class="v" id="stSettle"></div><div class="s" id="stSettleSub"></div></div>
+      <div class="stat"><div class="k">Last to settle</div><div class="v" id="stSlow"></div><div class="s" id="stSlowSub"></div></div>
+      <div class="stat"><div class="k">Share of worst case</div><div class="v" id="stShare"></div><div class="meter"><i id="stMeter"></i></div><div class="s" id="stShareSub"></div></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Circuit">
+    <h2>Four-stage circuit</h2>
+    <p class="sub">Click an input pin to flip it. Amber wires belong to the carry network, teal wires carry everything else, grey wires are at 0. FA0 is on the right because the carry travels right to left.</p>
+    <div class="legend">
+      <span><i style="background:var(--carry)"></i>Carry network at 1</span>
+      <span><i style="background:var(--sig)"></i>Other signal at 1</span>
+      <span><i style="background:var(--wire-lo)"></i>Signal at 0</span>
+      <span>Thick wire: changed on this tick</span>
+    </div>
+    <div class="scroll"><svg id="circuit" viewBox="0 0 1050 400" role="img" aria-label="Gate-level diagram of a four-stage ripple carry adder"></svg></div>
+    <div class="controls">
+      <button class="btn primary" id="replay" type="button">Replay</button>
+      <button class="btn" id="stepBack" type="button" aria-label="Step back one gate delay">◀ Step</button>
+      <button class="btn" id="stepFwd" type="button" aria-label="Step forward one gate delay">Step ▶</button>
+      <div class="scrub"><input type="range" id="scrub" min="0" max="12" value="0" step="1" aria-label="Time in gate delays"><span class="tlabel" id="tlabel"></span></div>
+      <label class="field">Speed
+        <select id="speed"><option value="800">Slow</option><option value="420" selected>Normal</option><option value="150">Fast</option></select>
+      </label>
+      <label class="field" for="tau">Gate delay τ
+        <input type="number" id="tau" min="0.1" max="20" step="0.1" value="1"> ns
+      </label>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Timing diagram">
+    <h2>Timing diagram</h2>
+    <p class="sub">One column is one gate delay (τ). A carry cannot settle until the carry before it has. A signal that flips more than once on its way to its final value is glitching. Click the diagram to move the playhead. The dashed line marks the 4-bit worst case.</p>
+    <div class="scroll"><svg id="wave" role="img" aria-label="Timing diagram of the carry and sum signals"></svg></div>
+  </section>
+
+  <section class="panel" aria-label="Stage by stage">
+    <h2>What each stage does</h2>
+    <p class="sub">A stage generates a carry when A and B are both 1, kills it when both are 0, and passes the incoming carry along when they differ. A long run of passing stages is what makes the adder slow.</p>
+    <div class="scroll"><table id="stageTable"></table></div>
+  </section>
+
+  <section class="panel" aria-label="Delay scaling">
+    <h2>Delay grows with width</h2>
+    <p class="sub">Each extra stage puts one more AND and one more OR on the carry path. A carry-lookahead adder works out the carries in parallel groups instead.</p>
+    <div class="formulas" id="formulas"></div>
+    <div class="scale" id="scale"></div>
+    <p class="foot">Lookahead figures are idealized: 4-bit groups and gates with unlimited fan-in.</p>
+  </section>
+
+  <section class="panel" aria-label="Image processing use">
+    <h2>Brightness add in an image pipeline</h2>
+    <p class="sub">Brightening an image adds a constant to every pixel. Here A is a 4-bit grayscale pixel and B is the brightness boost. The carry out of the last stage, C4, tells the pipeline that the result overflowed.</p>
+    <div class="pix" id="pix"></div>
+  </section>
+
+  <p class="foot">Model: every gate has the same delay τ, wires add no delay, and each stage is two XOR gates, two AND gates and one OR gate. Edit τ above to convert gate delays to nanoseconds.</p>
+</div>
+
+<script>
+/*SIM*/
+const N=4, T=12;
+const xor=(a,b)=>a^b, and=(a,b)=>a&b, or=(a,b)=>a|b;
+const GATES=[];
+for(let i=0;i<N;i++){
+  GATES.push({out:'P'+i,ins:['A'+i,'B'+i],fn:xor});
+  GATES.push({out:'G'+i,ins:['A'+i,'B'+i],fn:and});
+  GATES.push({out:'T'+i,ins:['P'+i,'C'+i],fn:and});
+  GATES.push({out:'C'+(i+1),ins:['G'+i,'T'+i],fn:or});
+  GATES.push({out:'S'+i,ins:['P'+i,'C'+i],fn:xor});
+}
+function settle(inp){
+  const v={};
+  v.C0=inp.cin;
+  for(let i=0;i<N;i++){
+    const a=(inp.A>>i)&1,b=(inp.B>>i)&1;
+    v['A'+i]=a;v['B'+i]=b;
+    const p=a^b,g=a&b,c=v['C'+i];
+    v['P'+i]=p;v['G'+i]=g;v['T'+i]=p&c;v['C'+(i+1)]=g|(p&c);v['S'+i]=p^c;
+  }
+  return v;
+}
+function simulate(prev,next){
+  const s0=settle(prev),nx=settle(next);
+  let cur={...s0};
+  cur.C0=nx.C0;
+  for(let i=0;i<N;i++){cur['A'+i]=nx['A'+i];cur['B'+i]=nx['B'+i];}
+  const hist={};
+  for(const k in cur)hist[k]=[cur[k]];
+  for(let t=0;t<T;t++){
+    const nxt={...cur};
+    for(const g of GATES)nxt[g.out]=g.fn(...g.ins.map(s=>cur[s]));
+    cur=nxt;
+    for(const k in cur)hist[k].push(cur[k]);
+  }
+  return hist;
+}
+function lastChange(h){for(let t=h.length-1;t>0;t--)if(h[t]!==h[t-1])return t;return 0;}
+function changeCount(h){let c=0;for(let t=1;t<h.length;t++)if(h[t]!==h[t-1])c++;return c;}
+/*ENDSIM*/
+
+const PRESETS=[
+  {id:'slow',name:'Slowest path',prev:{A:14,B:0,cin:1},next:{A:15,B:0,cin:1},
+   note:'A0 flips while Cin is 1. P0 and the AND gate T0 switch first, then the carry has to cross all four stages. This is the longest path through the circuit.'},
+  {id:'gen',name:'Generate at bit 0',prev:{A:15,B:0,cin:0},next:{A:15,B:1,cin:0},
+   note:'Bit 0 now has A and B both at 1, so it generates a carry. Bits 1 to 3 have A = 1 and B = 0, so each one passes the carry along.'},
+  {id:'cin',name:'Carry-in ripples',prev:{A:15,B:0,cin:0},next:{A:15,B:0,cin:1},
+   note:'Only Cin changes. Every stage passes it along, so the carry-in wave runs the full length of the chain.'},
+  {id:'die',name:'Carry dies at bit 3',prev:{A:6,B:0,cin:0},next:{A:6,B:2,cin:0},
+   note:'Bit 1 generates a carry and bit 2 passes it on. Bit 3 has A and B both at 0, so it kills the carry and C4 stays at 0.'},
+  {id:'none',name:'No carry at all',prev:{A:5,B:0,cin:0},next:{A:5,B:10,cin:0},
+   note:'Every bit has exactly one 1, so no stage generates a carry and nothing ripples. The result is ready after a couple of gate delays.'}
+];
+
+let inputs={A:14,B:0,cin:1}, prevInputs={A:14,B:0,cin:1}, hist=null, t=0, timer=null, activePreset=null;
+const $=id=>document.getElementById(id);
+const bin=(n,w=4)=>n.toString(2).padStart(w,'0');
+const tau=()=>{const v=parseFloat($('tau').value);return v>0?v:1;};
+const fmtNs=n=>(Math.round(n*100)/100).toString();
+const OUTS=['C4','C3','C2','C1','S3','S2','S1','S0'];
+const WORST_CARRY=2*N+1;
+
+/* ---------- build circuit ---------- */
+const cls=s=>/^[CGT]/.test(s)?'carry':'';
+const wire=(sig,d)=>`<path class="wire ${cls(sig)}" data-sig="${sig}" d="${d}"/>`;
+const dot=(sig,x,y)=>`<circle class="dot ${cls(sig)}" data-sig="${sig}" cx="${x}" cy="${y}" r="3.4"/>`;
+const gate=(out,x,y,label)=>`<g class="gate ${cls(out)}" data-sig="${out}"><rect x="${x}" y="${y}" width="56" height="26" rx="5"/><text x="${x+28}" y="${y+17}" text-anchor="middle">${label}</text></g>`;
+const node=(sig,x,y,r,pin,label)=>`<g class="node ${cls(sig)} ${pin?'pin':''}" data-sig="${sig}" ${pin?`data-pin="${sig}" tabindex="0" role="button" aria-label="Flip ${label}"`:''} transform="translate(${x},${y})"><circle r="${r}"/><text class="val" y="4">0</text></g>`;
+
+function stageSVG(i){
+  const x0=70+(3-i)*230,y0=48,c=i,co=i+1;
+  let s=`<g transform="translate(${x0},${y0})">`;
+  s+=`<rect class="stagebox" x="0" y="-30" width="210" height="352" rx="10"/>`;
+  s+=`<text class="stitle" x="12" y="-12">FA${i}</text>`;
+  s+=wire('A'+i,'M40,14 V64 M40,40 H124 V64');
+  s+=wire('B'+i,'M68,14 V64 M68,28 H152 V64');
+  s+=wire('P'+i,'M54,90 V170 M54,120 H124 V150');
+  s+=wire('G'+i,'M138,90 V102 H190 V196 H152 V214');
+  s+=wire('T'+i,'M138,176 V196 H124 V214');
+  s+=wire('C'+c,(i===0?'M249,132':'M210,132')+' H82 V170 M152,132 V150');
+  s+=wire('S'+i,'M68,196 V271');
+  s+=wire('C'+co,'M138,240 V256 '+(i===3?'H-29':'H-10 V132 H-20'));
+  s+=gate('P'+i,26,64,'XOR')+gate('G'+i,110,64,'AND')+gate('T'+i,110,150,'AND')+gate('S'+i,40,170,'XOR')+gate('C'+co,110,214,'OR');
+  s+=`<text class="sl" x="60" y="110">P${i}</text><text class="sl" x="146" y="98">G${i}</text><text class="sl" x="146" y="190">T${i}</text>`;
+  s+=dot('A'+i,40,40)+dot('B'+i,68,28)+dot('P'+i,54,120)+dot('C'+c,152,132);
+  s+=`<text class="pl" x="40" y="-1">A${i}</text><text class="pl" x="68" y="-1">B${i}</text>`;
+  s+=node('A'+i,40,14,11,true,'A'+i)+node('B'+i,68,14,11,true,'B'+i);
+  s+=node('S'+i,68,282,11,false)+`<text class="pl" x="68" y="314">S${i}</text>`;
+  if(i<3){s+=node('C'+co,-10,194,9,false)+`<text class="pl" x="-10" y="216" style="font-size:10px">C${co}</text>`;}
+  else{s+=node('C4',-40,256,11,false)+`<text class="pl" x="-40" y="234">C4</text>`;}
+  if(i===0){s+=node('C0',260,132,11,true,'Cin')+`<text class="pl" x="260" y="110">Cin</text>`;}
+  return s+'</g>';
+}
+$('circuit').innerHTML=[3,2,1,0].map(stageSVG).join('');
+const els={};
+document.querySelectorAll('#circuit [data-sig]').forEach(e=>{(els[e.dataset.sig]=els[e.dataset.sig]||[]).push(e);});
+
+function paint(){
+  const k=Math.max(0,Math.min(t,T));
+  for(const sig in els){
+    const h=hist[sig],v=h[k],ch=k>0&&h[k]!==h[k-1];
+    els[sig].forEach(e=>{
+      e.classList.toggle('hi',v===1);
+      e.classList.toggle('flash',ch);
+      if(e.classList.contains('node'))e.querySelector('text.val').textContent=v;
+    });
+  }
+  $('scrub').value=k;
+  $('tlabel').textContent=`t = ${k} τ = ${fmtNs(k*tau())} ns`;
+  const x=waveX(k);
+  const ph=$('whead');
+  if(ph){ph.setAttribute('x1',x);ph.setAttribute('x2',x);}
+}
+
+/* ---------- inputs ---------- */
+function buildBits(){
+  const mk=(reg,i,label,extra='')=>`<button type="button" class="bit ${extra}" data-reg="${reg}" data-i="${i}" aria-pressed="false" aria-label="${label}"><span class="bl">${label}</span><span class="bv">0</span></button>`;
+  $('bitsA').innerHTML=[3,2,1,0].map(i=>mk('A',i,'A'+i)).join('');
+  $('bitsB').innerHTML=[3,2,1,0].map(i=>mk('B',i,'B'+i)).join('');
+  $('bitsC').innerHTML=mk('cin',0,'Cin','cin');
+  $('presets').innerHTML=PRESETS.map(p=>`<button type="button" class="chip" data-preset="${p.id}" aria-pressed="false">${p.name}</button>`).join('');
+}
+function renderInputs(){
+  document.querySelectorAll('.bit').forEach(b=>{
+    const reg=b.dataset.reg,i=+b.dataset.i;
+    const v=reg==='cin'?inputs.cin:(inputs[reg]>>i)&1;
+    b.setAttribute('aria-pressed',v?'true':'false');
+    b.querySelector('.bv').textContent=v;
+  });
+  $('decA').textContent='= '+inputs.A;
+  $('decB').textContent='= '+inputs.B;
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.preset===activePreset?'true':'false'));
+  const p=PRESETS.find(x=>x.id===activePreset);
+  $('note').textContent=p?p.note:`Starting from ${bin(prevInputs.A)} + ${bin(prevInputs.B)} with Cin = ${prevInputs.cin}, the circuit had settled. Your flip is applied at t = 0 and the change spreads from there.`;
+}
+
+/* ---------- summary ---------- */
+function settleTick(){return Math.max(...OUTS.map(s=>lastChange(hist[s])));}
+function renderStats(){
+  const total=inputs.A+inputs.B+inputs.cin,c4=total>>4,sum=total&15;
+  $('stResult').textContent=`${c4} ${bin(sum)}`;
+  $('stResultSub').textContent=`${inputs.A} + ${inputs.B} + ${inputs.cin} = ${total}`;
+  const st=settleTick(),tu=tau();
+  let slow=OUTS[0],sv=-1;
+  OUTS.forEach(s=>{const l=lastChange(hist[s]);if(l>sv){sv=l;slow=s;}});
+  if(st===0){
+    $('stSettle').textContent='0 τ';
+    $('stSettleSub').textContent='no output changed';
+    $('stSlow').textContent='none';
+    $('stSlowSub').textContent='the outputs were already correct';
+  }else{
+    $('stSettle').textContent=`${st} τ`;
+    $('stSettleSub').textContent=`${fmtNs(st*tu)} ns at ${fmtNs(tu)} ns per gate`;
+    $('stSlow').textContent=slow;
+    $('stSlowSub').textContent=slow[0]==='C'?'carry out of stage '+(+slow[1]-1):'sum bit '+slow[1];
+  }
+  const share=Math.round(st/WORST_CARRY*100);
+  $('stShare').textContent=share+'%';
+  $('stMeter').style.width=share+'%';
+  $('stShareSub').textContent=`worst case ${WORST_CARRY} τ = ${fmtNs(WORST_CARRY*tu)} ns`;
+}
+
+/* ---------- waveform ---------- */
+const WAVE=['C0','C1','C2','C3','C4','S0','S1','S2','S3'];
+const WL={C0:'Cin'};
+const GX=64,TW=48,RH=30,TOP=26,WW=GX+T*TW+90,WH=TOP+WAVE.length*RH+26;
+const waveX=k=>GX+k*TW;
+function renderWave(){
+  let s='';
+  for(let k=0;k<=T;k++){
+    s+=`<line class="wgrid" x1="${waveX(k)}" x2="${waveX(k)}" y1="${TOP-4}" y2="${TOP+WAVE.length*RH}"/>`;
+    s+=`<text class="wtick" x="${waveX(k)}" y="14">${k}</text>`;
+  }
+  s+=`<text class="wtick" x="${GX-10}" y="14" style="text-anchor:end">τ</text>`;
+  WAVE.forEach((sig,r)=>{
+    const top=TOP+r*RH,yh=top+7,yl=top+RH-8,h=hist[sig];
+    const yv=v=>v?yh:yl;
+    let d=`M${waveX(0)},${yv(h[0])}`;
+    for(let k=1;k<=T;k++){d+=` H${waveX(k)}`;if(h[k]!==h[k-1])d+=` V${yv(h[k])}`;}
+    s+=`<line class="wgrid" x1="${GX}" x2="${waveX(T)}" y1="${top+RH}" y2="${top+RH}"/>`;
+    s+=`<text class="wlab" x="${GX-10}" y="${top+RH/2+4}">${WL[sig]||sig}</text>`;
+    s+=`<path class="wsig ${cls(sig)}" d="${d}"/>`;
+    const n=changeCount(h);
+    if(n>1)s+=`<text class="wflip" x="${waveX(T)+8}" y="${top+RH/2+4}">flips ${n}×</text>`;
+  });
+  const wx=waveX(WORST_CARRY);
+  s+=`<line class="wworst" x1="${wx}" x2="${wx}" y1="${TOP-4}" y2="${TOP+WAVE.length*RH}"/>`;
+  s+=`<text class="wworstlab" x="${wx}" y="${WH-6}">worst case ${WORST_CARRY} τ</text>`;
+  s+=`<line class="whead" id="whead" x1="${waveX(t)}" x2="${waveX(t)}" y1="${TOP-4}" y2="${TOP+WAVE.length*RH}"/>`;
+  $('wave').setAttribute('viewBox',`0 0 ${WW} ${WH}`);
+  $('wave').innerHTML=s;
+}
+
+/* ---------- table ---------- */
+function renderTable(){
+  const f=settle(inputs);
+  const tk=h=>{const l=lastChange(h);return l?l+' τ':'steady';};
+  let s='<thead><tr><th>Stage</th><th>A</th><th>B</th><th>Carry in</th><th>Role</th><th>Carry out</th><th>Sum</th><th>Carry out ready</th><th>Sum ready</th></tr></thead><tbody>';
+  for(let i=0;i<N;i++){
+    const a=f['A'+i],b=f['B'+i],c=f['C'+i];
+    const role=a&&b?['gen','Generates']:(a||b)?['prop','Passes carry']:['kill','Kills carry'];
+    s+=`<tr><td class="st">FA${i}</td><td>${a}</td><td>${b}</td><td>${c}</td><td><span class="tag ${role[0]}">${role[1]}</span></td><td>${f['C'+(i+1)]}</td><td>${f['S'+i]}</td><td>${tk(hist['C'+(i+1)])}</td><td>${tk(hist['S'+i])}</td></tr>`;
+  }
+  $('stageTable').innerHTML=s+'</tbody>';
+}
+
+/* ---------- scaling ---------- */
+function renderScale(){
+  const widths=[4,8,16,32,64];
+  const rip=n=>2*n+1, cla=n=>1+2*Math.ceil(Math.log(n)/Math.log(4));
+  const max=rip(64),tu=tau();
+  $('formulas').innerHTML=`<span>Carry out of stage n: <b>(2n + 1) τ</b></span><span>Last sum bit: <b>2n τ</b></span><span>4 bits: <b>${WORST_CARRY} τ = ${fmtNs(WORST_CARRY*tu)} ns</b></span>`;
+  $('scale').innerHTML=widths.map(n=>`<div class="srow ${n===4?'here':''}"><div class="n">${n}-bit<small>${n===4?'this lab':'&nbsp;'}</small></div><div class="bars">
+    <div class="bar rip"><i style="width:${Math.max(0.6,rip(n)/max*100)}%"></i><span>ripple ${rip(n)} τ · ${fmtNs(rip(n)*tu)} ns</span></div>
+    <div class="bar cla"><i style="width:${Math.max(0.6,cla(n)/max*100)}%"></i><span>lookahead ${cla(n)} τ · ${fmtNs(cla(n)*tu)} ns</span></div></div></div>`).join('');
+}
+
+/* ---------- pixel ---------- */
+function renderPixel(){
+  const total=inputs.A+inputs.B+inputs.cin,c4=total>>4,wrap=total&15,clamp=c4?15:wrap;
+  const gray=v=>{const g=Math.round(v/15*255);return `rgb(${g},${g},${g})`;};
+  const fig=(v,title,sub)=>`<figure><div class="swatch" style="background:${gray(v)}"></div><figcaption><b>${title}: level ${v}</b>${sub}</figcaption></figure>`;
+  $('pix').innerHTML=fig(inputs.A,'Original','pixel A')+
+    fig(wrap,'Wraps around',c4?'C4 = 1 was ignored, so a bright pixel turns dark':'no overflow, same result')+
+    fig(clamp,'Clamped',c4?'C4 = 1 forces the maximum level':'no overflow, same result');
+}
+
+/* ---------- control flow ---------- */
+function stop(){if(timer){clearInterval(timer);timer=null;}}
+function play(){
+  stop();t=0;paint();
+  const end=settleTick();
+  if(end===0)return;
+  timer=setInterval(()=>{if(t>=end){stop();return;}t++;paint();},+$('speed').value);
+}
+function renderAll(){renderInputs();renderStats();renderWave();renderTable();renderScale();renderPixel();paint();}
+function change(next){
+  stop();
+  hist=simulate(inputs,next);
+  prevInputs=inputs;inputs=next;activePreset=null;
+  t=0;renderAll();play();
+}
+function applyPreset(id,animate){
+  const p=PRESETS.find(x=>x.id===id);
+  stop();
+  hist=simulate(p.prev,p.next);
+  prevInputs={...p.prev};inputs={...p.next};activePreset=id;
+  t=animate?0:settleTick();
+  renderAll();
+  if(animate)play();
+}
+function toggle(reg,i){
+  const n={...inputs};
+  if(reg==='cin')n.cin^=1;else n[reg]^=(1<<i);
+  change(n);
+}
+
+document.addEventListener('click',e=>{
+  const bit=e.target.closest('.bit');if(bit){toggle(bit.dataset.reg,+bit.dataset.i);return;}
+  const ch=e.target.closest('.chip');if(ch){applyPreset(ch.dataset.preset,true);return;}
+  const pin=e.target.closest('[data-pin]');
+  if(pin){const s=pin.dataset.pin;if(s==='C0')toggle('cin',0);else toggle(s[0],+s[1]);}
+});
+document.addEventListener('keydown',e=>{
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('[data-pin]')){
+    e.preventDefault();
+    const s=e.target.dataset.pin;if(s==='C0')toggle('cin',0);else toggle(s[0],+s[1]);
+  }
+});
+$('replay').addEventListener('click',play);
+$('stepFwd').addEventListener('click',()=>{stop();t=Math.min(T,t+1);paint();});
+$('stepBack').addEventListener('click',()=>{stop();t=Math.max(0,t-1);paint();});
+$('scrub').addEventListener('input',e=>{stop();t=+e.target.value;paint();});
+$('speed').addEventListener('change',()=>{if(timer)play();});
+$('tau').addEventListener('input',()=>{renderStats();renderScale();paint();});
+$('wave').addEventListener('click',e=>{
+  const r=$('wave').getBoundingClientRect();
+  const x=(e.clientX-r.left)/r.width*WW;
+  stop();t=Math.max(0,Math.min(T,Math.round((x-GX)/TW)));paint();
+});
+
+buildBits();
+applyPreset('slow',false);
+</script>
+
+</body></html>
